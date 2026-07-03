@@ -4,7 +4,14 @@ import type { TournamentState } from '../types';
 
 const ROW_ID = 1;
 
-let lastSyncedJson: string | null = null;
+// Timestamp of the last state we know Supabase has (ours or someone
+// else's) — used to ignore stale/duplicate updates instead of comparing
+// serialized JSON, since Postgres' jsonb doesn't preserve key order and
+// would make every one of our own pushes look like a "new" remote change.
+let latestKnownUpdatedAt: string | null = null;
+// True while we're applying a remote update, so the store subscriber
+// below knows not to treat it as a local edit and echo it back.
+let applyingRemote = false;
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 function currentTournamentData(): TournamentState {
@@ -14,13 +21,21 @@ function currentTournamentData(): TournamentState {
 
 async function pushState() {
   const payload = currentTournamentData();
-  const json = JSON.stringify(payload);
-  if (json === lastSyncedJson) return;
-  lastSyncedJson = json;
+  const updatedAt = new Date().toISOString();
+  latestKnownUpdatedAt = updatedAt;
   const { error } = await supabase
     .from('tournament_state')
-    .upsert({ id: ROW_ID, data: payload, updated_at: new Date().toISOString() });
+    .upsert({ id: ROW_ID, data: payload, updated_at: updatedAt });
   if (error) console.error('Error guardando en Supabase:', error.message);
+}
+
+function applyRemote(data: TournamentState, updatedAt: string) {
+  // Ignore our own echo and anything older than what we've already applied.
+  if (latestKnownUpdatedAt && updatedAt <= latestKnownUpdatedAt) return;
+  latestKnownUpdatedAt = updatedAt;
+  applyingRemote = true;
+  useTournamentStore.getState().importState(data);
+  applyingRemote = false;
 }
 
 /**
@@ -31,18 +46,14 @@ async function pushState() {
 export function initSupabaseSync() {
   supabase
     .from('tournament_state')
-    .select('data')
+    .select('data, updated_at')
     .eq('id', ROW_ID)
     .maybeSingle()
     .then(({ data, error }) => {
       if (error) {
         console.error('Error cargando el torneo desde Supabase:', error.message);
-        useTournamentStore.setState({ isSynced: true });
-        return;
-      }
-      if (data?.data) {
-        lastSyncedJson = JSON.stringify(data.data);
-        useTournamentStore.getState().importState(data.data as TournamentState);
+      } else if (data?.data) {
+        applyRemote(data.data as TournamentState, data.updated_at as string);
       } else {
         pushState();
       }
@@ -55,17 +66,15 @@ export function initSupabaseSync() {
       'postgres_changes',
       { event: '*', schema: 'public', table: 'tournament_state' },
       (payload) => {
-        const incoming = (payload.new as { data?: TournamentState } | undefined)?.data;
-        if (!incoming) return;
-        const json = JSON.stringify(incoming);
-        if (json === lastSyncedJson) return;
-        lastSyncedJson = json;
-        useTournamentStore.getState().importState(incoming);
+        const row = payload.new as { data?: TournamentState; updated_at?: string } | undefined;
+        if (!row?.data || !row.updated_at) return;
+        applyRemote(row.data, row.updated_at);
       },
     )
     .subscribe();
 
   useTournamentStore.subscribe((state, prevState) => {
+    if (applyingRemote) return;
     if (
       state.config === prevState.config &&
       state.players === prevState.players &&
