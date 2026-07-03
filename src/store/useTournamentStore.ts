@@ -24,7 +24,7 @@ import {
 const GROUP_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
 const defaultConfig: TournamentConfig = {
-  name: 'Torneo de Tenis DITO',
+  name: 'CZ Dito Open',
   numGroups: 4,
   qualifiersPerGroup: 2,
   groupFormat: { type: 'superTiebreak', points: 10, winBy: 2 },

@@ -64,10 +64,6 @@ export function Layout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <div className="bg-forest px-4 py-2 text-center text-xs font-semibold uppercase tracking-widest-plus text-white">
-        Patrocinado por DITO Collective
-      </div>
-
       <header className="border-b border-line bg-paper">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">
           <NavLink to="/" className="font-serif text-2xl leading-none text-ink">
