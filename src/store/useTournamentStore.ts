@@ -67,6 +67,8 @@ interface Actions {
   clearGroupResult: (matchId: string) => void;
   generateGroupOrder: () => void;
   moveGroupMatchOrder: (matchId: string, direction: 'up' | 'down') => void;
+  moveGroupStandingRow: (groupId: string, playerId: string, direction: 'up' | 'down') => void;
+  clearGroupManualOrder: (groupId: string) => void;
 
   generateBracket: () => string | null;
   recordKnockoutResult: (matchId: string, result: KnockoutResult) => string | null;
@@ -227,6 +229,26 @@ export const useTournamentStore = create<Store>()(
             }),
           };
         }),
+
+      moveGroupStandingRow: (groupId, playerId, direction) =>
+        set((s) => {
+          const group = s.groups.find((g) => g.id === groupId);
+          if (!group) return {};
+          const currentOrder = computeGroupStandings(group, s.matches).map((r) => r.playerId);
+          const idx = currentOrder.indexOf(playerId);
+          const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+          if (idx === -1 || swapIdx < 0 || swapIdx >= currentOrder.length) return {};
+          const newOrder = [...currentOrder];
+          [newOrder[idx], newOrder[swapIdx]] = [newOrder[swapIdx], newOrder[idx]];
+          return {
+            groups: s.groups.map((g) => (g.id === groupId ? { ...g, manualOrder: newOrder } : g)),
+          };
+        }),
+
+      clearGroupManualOrder: (groupId) =>
+        set((s) => ({
+          groups: s.groups.map((g) => (g.id === groupId ? { ...g, manualOrder: undefined } : g)),
+        })),
 
       generateBracket: () => {
         const { config, groups, players, matches } = get();

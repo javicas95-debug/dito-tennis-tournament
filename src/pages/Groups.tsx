@@ -1,5 +1,5 @@
 import { useTournamentStore } from '../store/useTournamentStore';
-import { computeGroupStandings, playerName } from '../lib/standings';
+import { playerName } from '../lib/standings';
 import { Badge, Button, Card, EmptyState, SectionTitle } from '../components/ui';
 import { GroupResultForm } from '../components/GroupResultForm';
 import { StandingsTable } from '../components/StandingsTable';
@@ -45,7 +45,6 @@ export function Groups() {
         const groupMatches = matches
           .filter((m) => m.groupId === group.id)
           .sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity));
-        const standings = computeGroupStandings(group, matches);
 
         return (
           <div key={group.id} className="space-y-4">
@@ -56,7 +55,7 @@ export function Groups() {
             ) : (
               <>
                 <Card className="overflow-x-auto p-4">
-                  <StandingsTable rows={standings} qualifiersCount={config.qualifiersPerGroup} />
+                  <StandingsTable group={group} qualifiersCount={config.qualifiersPerGroup} />
                 </Card>
 
                 <div className="space-y-3">

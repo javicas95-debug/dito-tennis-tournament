@@ -8,6 +8,10 @@ export interface Group {
   id: string;
   name: string;
   playerIds: string[];
+  // Admin-forced final standings order (playerIds), used to settle ties
+  // that can't be resolved automatically (e.g. after a mini-partido).
+  // Ignored if it doesn't match the group's current players.
+  manualOrder?: string[];
 }
 
 export interface GroupFormat {
