@@ -2,7 +2,6 @@ import { useTournamentStore } from '../store/useTournamentStore';
 import { computeGroupStandings, playerName } from '../lib/standings';
 import { Badge, Button, Card, EmptyState, SectionTitle } from '../components/ui';
 import { GroupResultForm } from '../components/GroupResultForm';
-import { MatchScheduleEditor } from '../components/MatchScheduleEditor';
 import { StandingsTable } from '../components/StandingsTable';
 
 export function Groups() {
@@ -36,8 +35,16 @@ export function Groups() {
         }
       />
 
+      {isAdmin && groupMatchesExist && !matches.some((m) => m.phase === 'group' && m.order) && (
+        <p className="text-sm text-ink/60">
+          Ve a <span className="font-semibold">Calendario</span> para generar el orden de juego del día.
+        </p>
+      )}
+
       {groups.map((group) => {
-        const groupMatches = matches.filter((m) => m.groupId === group.id);
+        const groupMatches = matches
+          .filter((m) => m.groupId === group.id)
+          .sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity));
         const standings = computeGroupStandings(group, matches);
 
         return (
@@ -59,25 +66,15 @@ export function Groups() {
                     groupMatches.map((match) => (
                       <Card key={match.id} className="space-y-3 p-4">
                         <div className="flex flex-wrap items-center justify-between gap-2">
-                          <p className="font-serif text-lg">
-                            {playerName(players, match.playerAId)} <span className="text-ink/40">vs</span>{' '}
-                            {playerName(players, match.playerBId)}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            {match.order && <Badge>Orden {match.order}</Badge>}
+                            <p className="font-serif text-lg">
+                              {playerName(players, match.playerAId)} <span className="text-ink/40">vs</span>{' '}
+                              {playerName(players, match.playerBId)}
+                            </p>
+                          </div>
                           {match.status === 'completed' && <Badge tone="forest">Jugado</Badge>}
                         </div>
-                        {isAdmin ? (
-                          <MatchScheduleEditor match={match} />
-                        ) : (
-                          match.scheduledAt && (
-                            <p className="text-sm text-ink/60">
-                              {new Date(match.scheduledAt).toLocaleString('es-ES', {
-                                dateStyle: 'medium',
-                                timeStyle: 'short',
-                              })}
-                              {match.court && ` · ${match.court}`}
-                            </p>
-                          )
-                        )}
                         {isAdmin ? (
                           <GroupResultForm match={match} />
                         ) : (

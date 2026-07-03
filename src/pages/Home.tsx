@@ -25,7 +25,13 @@ function MatchRow({ match }: { match: Match }) {
         </p>
       </div>
       <div className="text-right text-sm text-ink/60">
-        {match.scheduledAt ? (
+        {match.phase === 'group' ? (
+          match.order ? (
+            <p>Orden {match.order}</p>
+          ) : (
+            <p className="italic">Sin orden asignado</p>
+          )
+        ) : match.scheduledAt ? (
           <>
             <p>{new Date(match.scheduledAt).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })}</p>
             {match.court && <p>{match.court}</p>}
@@ -44,10 +50,16 @@ export function Home() {
   const config = useTournamentStore((s) => s.config);
 
   const completed = matches.filter((m) => m.status === 'completed').length;
-  const upcoming = matches
-    .filter((m) => m.status !== 'completed' && m.scheduledAt && m.playerAId && m.playerBId)
+
+  const nextGroupMatches = matches
+    .filter((m) => m.phase === 'group' && m.status !== 'completed' && m.order && m.playerAId && m.playerBId)
+    .sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity))
+    .slice(0, 5);
+  const nextKnockoutMatches = matches
+    .filter((m) => m.phase !== 'group' && m.status !== 'completed' && m.scheduledAt && m.playerAId && m.playerBId)
     .sort((a, b) => new Date(a.scheduledAt!).getTime() - new Date(b.scheduledAt!).getTime())
     .slice(0, 5);
+  const upcoming = nextGroupMatches.length > 0 ? nextGroupMatches : nextKnockoutMatches;
 
   const recent = matches
     .filter((m) => m.status === 'completed')

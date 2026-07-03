@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { useTournamentStore } from '../store/useTournamentStore';
 import { Button, Card, EmptyState, Field, SectionTitle, inputClass } from '../components/ui';
+import { CrossingsEditor } from '../components/CrossingsEditor';
 import type { TournamentState } from '../types';
 
 function NumberField({
@@ -129,6 +130,11 @@ export function Settings() {
             onChange={(v) => setConfig({ groupFormat: { ...config.groupFormat, winBy: v } })}
           />
         </div>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="font-serif text-xl">Cruces del cuadro final</h2>
+        <CrossingsEditor />
       </section>
 
       <section className="space-y-4">

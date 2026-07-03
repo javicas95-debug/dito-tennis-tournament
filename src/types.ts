@@ -24,6 +24,18 @@ export interface KnockoutFormat {
   tiebreakWinBy: number; // e.g. 2
 }
 
+// A qualifier slot identified by its group and rank within that group
+// (rank 0 = winner of the group, rank 1 = runner-up, ...).
+export interface CrossingSlot {
+  groupId: string;
+  rank: number;
+}
+
+export interface Crossing {
+  a: CrossingSlot;
+  b: CrossingSlot;
+}
+
 export interface TournamentConfig {
   name: string;
   numGroups: number;
@@ -31,6 +43,9 @@ export interface TournamentConfig {
   groupFormat: GroupFormat;
   knockoutFormat: KnockoutFormat;
   adminPin: string;
+  // Manual first-round bracket pairings. When absent (or stale), the
+  // standard seeding algorithm is used instead.
+  customCrossings?: Crossing[];
 }
 
 export interface GroupResult {
@@ -66,7 +81,8 @@ export interface Match {
   bracketSlot?: number; // position within the phase, used for ordering/seeding
   playerAId: string | null;
   playerBId: string | null;
-  scheduledAt?: string; // ISO datetime
+  order?: number; // play order within the group stage (single-day event, no fixed time)
+  scheduledAt?: string; // ISO datetime, only used for knockout-phase matches
   court?: string;
   status: MatchStatus;
   groupResult?: GroupResult;

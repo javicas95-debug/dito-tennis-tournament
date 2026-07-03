@@ -11,6 +11,7 @@ import type {
 } from '../types';
 import { createId } from '../lib/id';
 import { roundRobinPairs } from '../lib/roundRobin';
+import { generateGroupPlayOrder } from '../lib/playOrder';
 import { computeGroupStandings } from '../lib/standings';
 import { buildQualifierSeeds, isPowerOfTwo, standardSeedOrder } from '../lib/seeding';
 import { roundLabels } from '../lib/rounds';
@@ -64,6 +65,8 @@ interface Actions {
   generateGroupMatches: () => void;
   recordGroupResult: (matchId: string, result: GroupResult) => string | null;
   clearGroupResult: (matchId: string) => void;
+  generateGroupOrder: () => void;
+  moveGroupMatchOrder: (matchId: string, direction: 'up' | 'down') => void;
 
   generateBracket: () => string | null;
   recordKnockoutResult: (matchId: string, result: KnockoutResult) => string | null;
@@ -118,7 +121,7 @@ export const useTournamentStore = create<Store>()(
           groups: emptyGroups(count),
           players: get().players.map((p) => ({ ...p, groupId: undefined })),
           matches: get().matches.filter((m) => m.phase !== 'group'),
-          config: { ...get().config, numGroups: count },
+          config: { ...get().config, numGroups: count, customCrossings: undefined },
         })),
 
       assignPlayerToGroup: (playerId, groupId) =>
@@ -192,6 +195,39 @@ export const useTournamentStore = create<Store>()(
           ),
         })),
 
+      generateGroupOrder: () =>
+        set((s) => {
+          const groupMatches = s.matches.filter((m) => m.phase === 'group');
+          const orderedIds = generateGroupPlayOrder(s.groups, groupMatches);
+          const orderByMatchId = new Map(orderedIds.map((id, i) => [id, i + 1]));
+          return {
+            matches: s.matches.map((m) =>
+              m.phase === 'group' ? { ...m, order: orderByMatchId.get(m.id) } : m,
+            ),
+          };
+        }),
+
+      moveGroupMatchOrder: (matchId, direction) =>
+        set((s) => {
+          const ordered = s.matches
+            .filter((m) => m.phase === 'group')
+            .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+          const idx = ordered.findIndex((m) => m.id === matchId);
+          const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+          if (idx === -1 || swapIdx < 0 || swapIdx >= ordered.length) return {};
+          const current = ordered[idx];
+          const neighbor = ordered[swapIdx];
+          const currentOrder = current.order ?? idx + 1;
+          const neighborOrder = neighbor.order ?? swapIdx + 1;
+          return {
+            matches: s.matches.map((m) => {
+              if (m.id === current.id) return { ...m, order: neighborOrder };
+              if (m.id === neighbor.id) return { ...m, order: currentOrder };
+              return m;
+            }),
+          };
+        }),
+
       generateBracket: () => {
         const { config, groups, players, matches } = get();
         const rankedGroups = groups.map((g) =>
@@ -202,14 +238,38 @@ export const useTournamentStore = create<Store>()(
         if (rankedGroups.some((g) => g.length < config.qualifiersPerGroup)) {
           return 'Todavía no hay suficientes resultados para determinar los clasificados de cada grupo.';
         }
-        const seeds = buildQualifierSeeds(rankedGroups);
-        if (!isPowerOfTwo(seeds.length)) {
-          return `El número de clasificados (${seeds.length}) debe ser una potencia de 2 (2, 4, 8, 16...) para generar el cuadro automáticamente.`;
+        const totalQualifiers = groups.length * config.qualifiersPerGroup;
+        if (!isPowerOfTwo(totalQualifiers)) {
+          return `El número de clasificados (${totalQualifiers}) debe ser una potencia de 2 (2, 4, 8, 16...) para generar el cuadro automáticamente.`;
         }
-        const order = standardSeedOrder(seeds.length);
-        const orderedPlayers = order.map((seedNum) => seeds[seedNum - 1]);
 
-        const numRounds = Math.log2(seeds.length);
+        const groupIndexById = new Map(groups.map((g, i) => [g.id, i]));
+        const expectedPairs = totalQualifiers / 2;
+        const crossings = config.customCrossings;
+        const validCrossings =
+          crossings &&
+          crossings.length === expectedPairs &&
+          crossings.every(
+            (c) =>
+              groupIndexById.has(c.a.groupId) &&
+              groupIndexById.has(c.b.groupId) &&
+              c.a.rank < config.qualifiersPerGroup &&
+              c.b.rank < config.qualifiersPerGroup,
+          );
+
+        let orderedPlayers: string[];
+        if (validCrossings) {
+          orderedPlayers = crossings!.flatMap((c) => [
+            rankedGroups[groupIndexById.get(c.a.groupId)!][c.a.rank],
+            rankedGroups[groupIndexById.get(c.b.groupId)!][c.b.rank],
+          ]);
+        } else {
+          const seeds = buildQualifierSeeds(rankedGroups);
+          const seedOrder = standardSeedOrder(seeds.length);
+          orderedPlayers = seedOrder.map((seedNum) => seeds[seedNum - 1]);
+        }
+
+        const numRounds = Math.log2(orderedPlayers.length);
         const labels = roundLabels(numRounds);
 
         const rounds: Match[][] = [];
