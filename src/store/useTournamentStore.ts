@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import type {
   Group,
   GroupResult,
@@ -51,6 +50,8 @@ interface Actions {
   isAdmin: boolean;
   unlockAdmin: (pin: string) => boolean;
   lockAdmin: () => void;
+  // Whether the initial state has been loaded from Supabase yet.
+  isSynced: boolean;
 
   setConfig: (partial: Partial<TournamentConfig>) => void;
 
@@ -83,14 +84,13 @@ interface Actions {
 
 type Store = TournamentState & Actions;
 
-export const useTournamentStore = create<Store>()(
-  persist(
-    (set, get) => ({
+export const useTournamentStore = create<Store>()((set, get) => ({
       config: defaultConfig,
       players: [],
       groups: emptyGroups(defaultConfig.numGroups),
       matches: [],
       isAdmin: false,
+      isSynced: false,
 
       unlockAdmin: (pin) => {
         const ok = pin === get().config.adminPin;
@@ -407,18 +407,7 @@ export const useTournamentStore = create<Store>()(
         const { config, players, groups, matches } = get();
         return { config, players, groups, matches };
       },
-    }),
-    {
-      name: 'dito-tennis-tournament',
-      partialize: (s) => ({
-        config: s.config,
-        players: s.players,
-        groups: s.groups,
-        matches: s.matches,
-      }),
-    },
-  ),
-);
+    }));
 
 export function usePlayerById(id: string | null | undefined): Player | undefined {
   return useTournamentStore((s) => s.players.find((p) => p.id === id));

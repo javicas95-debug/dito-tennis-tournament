@@ -60,6 +60,7 @@ export function Layout({ children }: { children: ReactNode }) {
   const isAdmin = useTournamentStore((s) => s.isAdmin);
   const lockAdmin = useTournamentStore((s) => s.lockAdmin);
   const tournamentName = useTournamentStore((s) => s.config.name);
+  const isSynced = useTournamentStore((s) => s.isSynced);
   const [showPinModal, setShowPinModal] = useState(false);
 
   return (
@@ -98,6 +99,12 @@ export function Layout({ children }: { children: ReactNode }) {
           </div>
         </div>
       </header>
+
+      {!isSynced && (
+        <div className="bg-forest-light px-4 py-1.5 text-center text-xs font-semibold uppercase tracking-widest-plus text-forest">
+          Sincronizando…
+        </div>
+      )}
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">{children}</main>
 
