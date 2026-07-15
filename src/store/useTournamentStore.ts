@@ -58,6 +58,7 @@ interface Actions {
   addPlayer: (name: string) => void;
   updatePlayer: (id: string, name: string) => void;
   removePlayer: (id: string) => void;
+  setSeedSlot: (rank: number, playerId: string | null) => void;
 
   setNumGroups: (count: number) => void;
   assignPlayerToGroup: (playerId: string, groupId: string | null) => void;
@@ -118,6 +119,15 @@ export const useTournamentStore = create<Store>()((set, get) => ({
           ),
         })),
 
+      setSeedSlot: (rank, playerId) =>
+        set((s) => ({
+          players: s.players.map((p) => {
+            if (p.id === playerId) return { ...p, seedRank: rank };
+            if (p.seedRank === rank) return { ...p, seedRank: undefined };
+            return p;
+          }),
+        })),
+
       setNumGroups: (count) =>
         set(() => ({
           groups: emptyGroups(count),
@@ -138,13 +148,51 @@ export const useTournamentStore = create<Store>()((set, get) => ({
 
       autoAssignGroups: () =>
         set((s) => {
-          const shuffled = [...s.players].sort(() => Math.random() - 0.5);
+          function shuffle<T>(items: T[]): T[] {
+            const arr = [...items];
+            for (let i = arr.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1));
+              [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+          }
+
           const groups = s.groups.map((g) => ({ ...g, playerIds: [] as string[] }));
-          shuffled.forEach((player, i) => {
-            groups[i % groups.length].playerIds.push(player.id);
-          });
           const playerToGroup = new Map<string, string>();
-          groups.forEach((g) => g.playerIds.forEach((pid) => playerToGroup.set(pid, g.id)));
+
+          const seedsNeeded = groups.length * 2;
+          const seeded = s.players.filter(
+            (p) => p.seedRank != null && p.seedRank >= 1 && p.seedRank <= seedsNeeded,
+          );
+          const hasValidSeeding =
+            seedsNeeded > 0 &&
+            seeded.length === seedsNeeded &&
+            new Set(seeded.map((p) => p.seedRank)).size === seedsNeeded;
+
+          if (hasValidSeeding) {
+            const ranked = [...seeded].sort((a, b) => a.seedRank! - b.seedRank!);
+            const tier1 = shuffle(ranked.slice(0, groups.length));
+            const tier2 = shuffle(ranked.slice(groups.length));
+            const groupOrderForTier1 = shuffle(groups);
+            const groupOrderForTier2 = shuffle(groups);
+            tier1.forEach((player, i) => {
+              groupOrderForTier1[i].playerIds.push(player.id);
+              playerToGroup.set(player.id, groupOrderForTier1[i].id);
+            });
+            tier2.forEach((player, i) => {
+              groupOrderForTier2[i].playerIds.push(player.id);
+              playerToGroup.set(player.id, groupOrderForTier2[i].id);
+            });
+          }
+
+          const seededIds = new Set(hasValidSeeding ? seeded.map((p) => p.id) : []);
+          const remaining = shuffle(s.players.filter((p) => !seededIds.has(p.id)));
+          remaining.forEach((player, i) => {
+            const group = groups[i % groups.length];
+            group.playerIds.push(player.id);
+            playerToGroup.set(player.id, group.id);
+          });
+
           return {
             groups,
             players: s.players.map((p) => ({ ...p, groupId: playerToGroup.get(p.id) })),

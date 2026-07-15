@@ -2,6 +2,10 @@ export interface Player {
   id: string;
   name: string;
   groupId?: string;
+  // 1-based seed rank used by the group draw. Ranks 1..numGroups are the
+  // top seeds (one per group); numGroups+1..2*numGroups are the second
+  // tier (also one per group, but randomly matched).
+  seedRank?: number;
 }
 
 export interface Group {

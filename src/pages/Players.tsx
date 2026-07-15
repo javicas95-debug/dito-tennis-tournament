@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useTournamentStore } from '../store/useTournamentStore';
 import { Badge, Button, Card, EmptyState, Field, SectionTitle, inputClass } from '../components/ui';
+import { SeedsEditor } from '../components/SeedsEditor';
 
 export function Players() {
   const isAdmin = useTournamentStore((s) => s.isAdmin);
@@ -63,6 +64,8 @@ export function Players() {
         </form>
       )}
 
+      {isAdmin && <SeedsEditor />}
+
       {players.length === 0 ? (
         <EmptyState>Todavía no has añadido jugadores.</EmptyState>
       ) : (
@@ -90,8 +93,9 @@ export function Players() {
                       {player.name}
                     </button>
                   )}
-                  <div className="mt-1">
+                  <div className="mt-1 flex flex-wrap gap-1.5">
                     <Badge tone={group ? 'forest' : 'neutral'}>{group ? group.name : 'Sin grupo'}</Badge>
+                    {player.seedRank && <Badge tone="accent">Cabeza de serie #{player.seedRank}</Badge>}
                   </div>
                 </div>
                 {isAdmin && (
