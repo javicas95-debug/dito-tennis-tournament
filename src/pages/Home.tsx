@@ -69,13 +69,15 @@ export function Home() {
   return (
     <div className="space-y-10">
       <section
-        className="relative overflow-hidden rounded-md border border-line p-8 text-center sm:p-16"
+        className={`relative flex flex-col items-center justify-center overflow-hidden rounded-md border border-line p-8 text-center sm:p-16 ${
+          config.backgroundImageUrl ? 'min-h-[420px] sm:min-h-[520px]' : ''
+        }`}
         style={
           config.backgroundImageUrl
             ? {
                 backgroundImage: `url(${config.backgroundImageUrl})`,
                 backgroundSize: 'cover',
-                backgroundPosition: 'center',
+                backgroundPosition: `center ${config.backgroundImagePositionY ?? 50}%`,
               }
             : undefined
         }

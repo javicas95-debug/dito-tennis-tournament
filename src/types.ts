@@ -56,6 +56,8 @@ export interface TournamentConfig {
   customCrossings?: Crossing[];
   // Shown as a full-bleed background on the home page.
   backgroundImageUrl?: string;
+  // Vertical focal point of the background image, 0 (top) to 100 (bottom).
+  backgroundImagePositionY?: number;
   // Shown on the dedicated "Portada" page (rules poster, etc).
   coverImageUrl?: string;
 }

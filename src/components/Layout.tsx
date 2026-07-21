@@ -4,8 +4,8 @@ import { useTournamentStore } from '../store/useTournamentStore';
 import { Button, inputClass } from './ui';
 
 const NAV_LINKS = [
-  { to: '/', label: 'Inicio', end: true },
   { to: '/portada', label: 'Portada' },
+  { to: '/', label: 'Inicio', end: true },
   { to: '/jugadores', label: 'Jugadores' },
   { to: '/grupos', label: 'Grupos' },
   { to: '/calendario', label: 'Calendario' },

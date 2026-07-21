@@ -11,12 +11,16 @@ function ImageUploadField({
   slot,
   currentUrl,
   configKey,
+  positionY,
+  onPositionChange,
 }: {
   label: string;
   hint: string;
   slot: 'background' | 'cover';
   currentUrl?: string;
   configKey: 'backgroundImageUrl' | 'coverImageUrl';
+  positionY?: number;
+  onPositionChange?: (value: number) => void;
 }) {
   const setConfig = useTournamentStore((s) => s.setConfig);
   const [uploading, setUploading] = useState(false);
@@ -40,7 +44,12 @@ function ImageUploadField({
     <Field label={label}>
       <p className="mb-2 text-xs text-ink/50">{hint}</p>
       {currentUrl && (
-        <img src={currentUrl} alt="" className="mb-2 h-32 w-full rounded-sm object-cover" />
+        <img
+          src={currentUrl}
+          alt=""
+          className="mb-2 h-32 w-full rounded-sm object-cover"
+          style={slot === 'background' ? { objectPosition: `center ${positionY ?? 50}%` } : undefined}
+        />
       )}
       <div className="flex flex-wrap items-center gap-2">
         <Button type="button" variant="secondary" onClick={() => inputRef.current?.click()} disabled={uploading}>
@@ -60,6 +69,19 @@ function ImageUploadField({
         onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
       />
       {error && <p className="mt-1 text-xs text-accent">{error}</p>}
+      {slot === 'background' && currentUrl && onPositionChange && (
+        <div className="mt-3">
+          <span className="mb-1 block text-xs text-ink/50">Encuadre vertical (arriba / abajo)</span>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={positionY ?? 50}
+            onChange={(e) => onPositionChange(Number(e.target.value))}
+            className="w-full"
+          />
+        </div>
+      )}
     </Field>
   );
 }
@@ -163,6 +185,8 @@ export function Settings() {
             slot="background"
             currentUrl={config.backgroundImageUrl}
             configKey="backgroundImageUrl"
+            positionY={config.backgroundImagePositionY}
+            onPositionChange={(v) => setConfig({ backgroundImagePositionY: v })}
           />
           <ImageUploadField
             label="Portada del torneo"
