@@ -54,6 +54,10 @@ export interface TournamentConfig {
   // Manual first-round bracket pairings. When absent (or stale), the
   // standard seeding algorithm is used instead.
   customCrossings?: Crossing[];
+  // Shown as a full-bleed background on the home page.
+  backgroundImageUrl?: string;
+  // Shown on the dedicated "Portada" page (rules poster, etc).
+  coverImageUrl?: string;
 }
 
 export interface GroupResult {

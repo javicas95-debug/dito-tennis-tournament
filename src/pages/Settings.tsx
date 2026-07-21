@@ -2,7 +2,67 @@ import { useRef, useState } from 'react';
 import { useTournamentStore } from '../store/useTournamentStore';
 import { Button, Card, EmptyState, Field, SectionTitle, inputClass } from '../components/ui';
 import { CrossingsEditor } from '../components/CrossingsEditor';
-import type { TournamentState } from '../types';
+import { uploadTournamentImage } from '../lib/uploadImage';
+import type { TournamentConfig, TournamentState } from '../types';
+
+function ImageUploadField({
+  label,
+  hint,
+  slot,
+  currentUrl,
+  configKey,
+}: {
+  label: string;
+  hint: string;
+  slot: 'background' | 'cover';
+  currentUrl?: string;
+  configKey: 'backgroundImageUrl' | 'coverImageUrl';
+}) {
+  const setConfig = useTournamentStore((s) => s.setConfig);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  async function handleFile(file: File) {
+    setUploading(true);
+    setError(null);
+    try {
+      const url = await uploadTournamentImage(file, slot);
+      setConfig({ [configKey]: url } as Partial<TournamentConfig>);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo subir la imagen.');
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <Field label={label}>
+      <p className="mb-2 text-xs text-ink/50">{hint}</p>
+      {currentUrl && (
+        <img src={currentUrl} alt="" className="mb-2 h-32 w-full rounded-sm object-cover" />
+      )}
+      <div className="flex flex-wrap items-center gap-2">
+        <Button type="button" variant="secondary" onClick={() => inputRef.current?.click()} disabled={uploading}>
+          {uploading ? 'Subiendo…' : currentUrl ? 'Cambiar imagen' : 'Subir imagen'}
+        </Button>
+        {currentUrl && (
+          <Button type="button" variant="ghost" onClick={() => setConfig({ [configKey]: undefined } as Partial<TournamentConfig>)}>
+            Quitar
+          </Button>
+        )}
+      </div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+      />
+      {error && <p className="mt-1 text-xs text-accent">{error}</p>}
+    </Field>
+  );
+}
 
 function NumberField({
   label,
@@ -91,6 +151,26 @@ export function Settings() {
               onChange={(e) => setConfig({ adminPin: e.target.value })}
             />
           </Field>
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="font-serif text-xl">Imágenes</h2>
+        <div className="grid gap-6 sm:grid-cols-2">
+          <ImageUploadField
+            label="Imagen del torneo"
+            hint="Se muestra de fondo en la página de inicio."
+            slot="background"
+            currentUrl={config.backgroundImageUrl}
+            configKey="backgroundImageUrl"
+          />
+          <ImageUploadField
+            label="Portada del torneo"
+            hint="Cartel con normas e información, visible en la sección Portada del menú."
+            slot="cover"
+            currentUrl={config.coverImageUrl}
+            configKey="coverImageUrl"
+          />
         </div>
       </section>
 

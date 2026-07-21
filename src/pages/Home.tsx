@@ -68,23 +68,39 @@ export function Home() {
 
   return (
     <div className="space-y-10">
-      <section className="rounded-md border border-line bg-white/60 p-8 text-center sm:p-12">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-widest-plus text-forest">
-          {config.numGroups} grupos · {config.qualifiersPerGroup} clasificados por grupo
-        </p>
-        <h1 className="font-serif text-4xl sm:text-5xl">{config.name}</h1>
-        <div className="mt-6 flex flex-wrap justify-center gap-8 text-sm text-ink/70">
-          <div>
-            <p className="font-serif text-3xl text-ink">{players.length}</p>
-            <p className="uppercase tracking-widest-plus text-xs">Jugadores</p>
-          </div>
-          <div>
-            <p className="font-serif text-3xl text-ink">{completed}</p>
-            <p className="uppercase tracking-widest-plus text-xs">Partidos jugados</p>
-          </div>
-          <div>
-            <p className="font-serif text-3xl text-ink">{matches.length - completed}</p>
-            <p className="uppercase tracking-widest-plus text-xs">Pendientes</p>
+      <section
+        className="relative overflow-hidden rounded-md border border-line p-8 text-center sm:p-16"
+        style={
+          config.backgroundImageUrl
+            ? {
+                backgroundImage: `url(${config.backgroundImageUrl})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+              }
+            : undefined
+        }
+      >
+        {config.backgroundImageUrl && (
+          <div className="absolute inset-0 bg-paper/70 backdrop-blur-[1px]" />
+        )}
+        <div className="relative">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-widest-plus text-forest">
+            {config.numGroups} grupos · {config.qualifiersPerGroup} clasificados por grupo
+          </p>
+          <h1 className="font-serif text-4xl sm:text-5xl">{config.name}</h1>
+          <div className="mt-6 flex flex-wrap justify-center gap-8 text-sm text-ink/70">
+            <div>
+              <p className="font-serif text-3xl text-ink">{players.length}</p>
+              <p className="uppercase tracking-widest-plus text-xs">Jugadores</p>
+            </div>
+            <div>
+              <p className="font-serif text-3xl text-ink">{completed}</p>
+              <p className="uppercase tracking-widest-plus text-xs">Partidos jugados</p>
+            </div>
+            <div>
+              <p className="font-serif text-3xl text-ink">{matches.length - completed}</p>
+              <p className="uppercase tracking-widest-plus text-xs">Pendientes</p>
+            </div>
           </div>
         </div>
       </section>

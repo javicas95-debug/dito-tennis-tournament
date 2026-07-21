@@ -23,10 +23,14 @@ async function pushState() {
   const payload = currentTournamentData();
   const updatedAt = new Date().toISOString();
   latestKnownUpdatedAt = updatedAt;
-  const { error } = await supabase
-    .from('tournament_state')
-    .upsert({ id: ROW_ID, data: payload, updated_at: updatedAt });
-  if (error) console.error('Error guardando en Supabase:', error.message);
+  try {
+    const { error } = await supabase
+      .from('tournament_state')
+      .upsert({ id: ROW_ID, data: payload, updated_at: updatedAt });
+    if (error) console.error('Error guardando en Supabase:', error.message);
+  } catch (err) {
+    console.error('No se pudo guardar en Supabase:', err);
+  }
 }
 
 function applyRemote(data: TournamentState, updatedAt: string) {
@@ -44,21 +48,26 @@ function applyRemote(data: TournamentState, updatedAt: string) {
  * changes from other devices in real time.
  */
 export function initSupabaseSync() {
-  supabase
-    .from('tournament_state')
-    .select('data, updated_at')
-    .eq('id', ROW_ID)
-    .maybeSingle()
-    .then(({ data, error }) => {
+  (async () => {
+    try {
+      const { data, error } = await supabase
+        .from('tournament_state')
+        .select('data, updated_at')
+        .eq('id', ROW_ID)
+        .maybeSingle();
       if (error) {
         console.error('Error cargando el torneo desde Supabase:', error.message);
       } else if (data?.data) {
         applyRemote(data.data as TournamentState, data.updated_at as string);
       } else {
-        pushState();
+        await pushState();
       }
+    } catch (err) {
+      console.error('No se pudo conectar con Supabase:', err);
+    } finally {
       useTournamentStore.setState({ isSynced: true });
-    });
+    }
+  })();
 
   supabase
     .channel('tournament_state_changes')

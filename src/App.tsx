@@ -1,6 +1,7 @@
 import { Route, Routes } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { Home } from './pages/Home';
+import { Cover } from './pages/Cover';
 import { Players } from './pages/Players';
 import { Groups } from './pages/Groups';
 import { Schedule } from './pages/Schedule';
@@ -12,6 +13,7 @@ function App() {
     <Layout>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/portada" element={<Cover />} />
         <Route path="/jugadores" element={<Players />} />
         <Route path="/grupos" element={<Groups />} />
         <Route path="/calendario" element={<Schedule />} />
