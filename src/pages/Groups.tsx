@@ -48,7 +48,13 @@ export function Groups() {
 
         return (
           <div key={group.id} className="space-y-4">
-            <h2 className="font-serif text-2xl">{group.name}</h2>
+            <h2 className="font-serif text-2xl">
+              {group.name}
+              <span className="ml-2 text-base font-sans text-ink/40">
+                ({group.playerIds.length}
+                {group.targetSize ? `/${group.targetSize}` : ''} jugadores)
+              </span>
+            </h2>
 
             {group.playerIds.length === 0 ? (
               <EmptyState>Sin jugadores asignados todavía.</EmptyState>

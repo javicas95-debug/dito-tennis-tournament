@@ -38,12 +38,21 @@ const defaultConfig: TournamentConfig = {
   adminPin: '1234',
 };
 
-function emptyGroups(count: number): Group[] {
+function emptyGroups(count: number, targetSizes?: number[]): Group[] {
   return Array.from({ length: count }, (_, i) => ({
     id: createId('grp'),
     name: `Grupo ${GROUP_LETTERS[i] ?? i + 1}`,
     playerIds: [],
+    targetSize: targetSizes?.[i],
   }));
+}
+
+/** Even split with any remainder given to the first groups, e.g. 22/4 -> [6,6,5,5]. */
+function defaultGroupSizes(totalPlayers: number, numGroups: number): number[] {
+  if (numGroups <= 0) return [];
+  const base = Math.floor(totalPlayers / numGroups);
+  const remainder = totalPlayers % numGroups;
+  return Array.from({ length: numGroups }, (_, i) => base + (i < remainder ? 1 : 0));
 }
 
 interface Actions {
@@ -61,6 +70,7 @@ interface Actions {
   setSeedSlot: (rank: number, playerId: string | null) => void;
 
   setNumGroups: (count: number) => void;
+  setGroupTargetSize: (groupId: string, size: number) => void;
   assignPlayerToGroup: (playerId: string, groupId: string | null) => void;
   autoAssignGroups: () => void;
 
@@ -129,11 +139,20 @@ export const useTournamentStore = create<Store>()((set, get) => ({
         })),
 
       setNumGroups: (count) =>
-        set(() => ({
-          groups: emptyGroups(count),
-          players: get().players.map((p) => ({ ...p, groupId: undefined })),
-          matches: get().matches.filter((m) => m.phase !== 'group'),
-          config: { ...get().config, numGroups: count, customCrossings: undefined },
+        set(() => {
+          const totalPlayers = get().players.length;
+          const sizes = totalPlayers > 0 ? defaultGroupSizes(totalPlayers, count) : undefined;
+          return {
+            groups: emptyGroups(count, sizes),
+            players: get().players.map((p) => ({ ...p, groupId: undefined })),
+            matches: get().matches.filter((m) => m.phase !== 'group'),
+            config: { ...get().config, numGroups: count, customCrossings: undefined },
+          };
+        }),
+
+      setGroupTargetSize: (groupId, size) =>
+        set((s) => ({
+          groups: s.groups.map((g) => (g.id === groupId ? { ...g, targetSize: Math.max(1, size) } : g)),
         })),
 
       assignPlayerToGroup: (playerId, groupId) =>
@@ -185,13 +204,19 @@ export const useTournamentStore = create<Store>()((set, get) => ({
             });
           }
 
+          // Fill each group up to its target size (if set), always topping
+          // up whichever group with room currently has the fewest players
+          // so sizes stay as even as possible within those caps.
+          const capacityOf = (g: Group) => g.targetSize ?? Infinity;
           const seededIds = new Set(hasValidSeeding ? seeded.map((p) => p.id) : []);
           const remaining = shuffle(s.players.filter((p) => !seededIds.has(p.id)));
-          remaining.forEach((player, i) => {
-            const group = groups[i % groups.length];
-            group.playerIds.push(player.id);
-            playerToGroup.set(player.id, group.id);
-          });
+          for (const player of remaining) {
+            const candidates = groups.filter((g) => g.playerIds.length < capacityOf(g));
+            if (candidates.length === 0) break;
+            const target = candidates.reduce((min, g) => (g.playerIds.length < min.playerIds.length ? g : min));
+            target.playerIds.push(player.id);
+            playerToGroup.set(player.id, target.id);
+          }
 
           return {
             groups,

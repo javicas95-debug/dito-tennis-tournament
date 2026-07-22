@@ -66,6 +66,17 @@ export function Players() {
 
       {isAdmin && <SeedsEditor />}
 
+      {groups.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {groups.map((g) => (
+            <Badge key={g.id} tone={g.playerIds.length === g.targetSize ? 'forest' : 'neutral'}>
+              {g.name}: {g.playerIds.length}
+              {g.targetSize ? `/${g.targetSize}` : ''}
+            </Badge>
+          ))}
+        </div>
+      )}
+
       {players.length === 0 ? (
         <EmptyState>Todavía no has añadido jugadores.</EmptyState>
       ) : (

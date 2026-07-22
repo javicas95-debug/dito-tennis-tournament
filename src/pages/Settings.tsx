@@ -113,6 +113,9 @@ export function Settings() {
   const config = useTournamentStore((s) => s.config);
   const setConfig = useTournamentStore((s) => s.setConfig);
   const setNumGroups = useTournamentStore((s) => s.setNumGroups);
+  const groups = useTournamentStore((s) => s.groups);
+  const players = useTournamentStore((s) => s.players);
+  const setGroupTargetSize = useTournamentStore((s) => s.setGroupTargetSize);
   const resetTournament = useTournamentStore((s) => s.resetTournament);
   const importState = useTournamentStore((s) => s.importState);
   const exportState = useTournamentStore((s) => s.exportState);
@@ -222,6 +225,36 @@ export function Settings() {
             onChange={(v) => setConfig({ qualifiersPerGroup: v })}
           />
         </div>
+
+        {groups.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-widest-plus text-ink/60">
+              Tamaño de cada grupo (no tienen por qué ser iguales)
+            </p>
+            <div className="grid gap-3 sm:grid-cols-4">
+              {groups.map((g) => (
+                <div key={g.id} className="flex items-center gap-2">
+                  <span className="w-16 shrink-0 text-sm text-ink/70">{g.name}</span>
+                  <input
+                    type="number"
+                    min={1}
+                    className={inputClass}
+                    value={g.targetSize ?? ''}
+                    onChange={(e) => setGroupTargetSize(g.id, Number(e.target.value))}
+                  />
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-ink/50">
+              Suma de tamaños: {groups.reduce((sum, g) => sum + (g.targetSize ?? 0), 0)} · Jugadores añadidos:{' '}
+              {players.length}
+              {groups.reduce((sum, g) => sum + (g.targetSize ?? 0), 0) !== players.length && (
+                <span className="text-accent"> (no coinciden)</span>
+              )}
+            </p>
+          </div>
+        )}
+
         <div className="grid gap-4 sm:grid-cols-2">
           <NumberField
             label="Puntos del super tie-break"

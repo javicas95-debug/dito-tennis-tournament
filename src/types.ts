@@ -16,6 +16,9 @@ export interface Group {
   // that can't be resolved automatically (e.g. after a mini-partido).
   // Ignored if it doesn't match the group's current players.
   manualOrder?: string[];
+  // Desired number of players in this group; groups don't have to be
+  // the same size (e.g. 22 players in 4 groups = two groups of 6).
+  targetSize?: number;
 }
 
 export interface GroupFormat {
